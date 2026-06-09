@@ -1,0 +1,601 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Price Tracker">
+<title>Shelf Price Tracker</title>
+<style>
+  * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  body { margin:0; background:#f5f5f4; color:#1c1917;
+         font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; }
+  .wrap { max-width:480px; margin:0 auto; padding:24px 16px 80px; }
+  header { display:flex; align-items:center; gap:12px; }
+  .logo { width:40px; height:40px; border-radius:10px; background:#1c1917; color:#fafaf9;
+          display:flex; align-items:center; justify-content:center; font-size:20px; }
+  h1 { font-size:18px; margin:0; font-weight:600; }
+  .sub { font-size:12px; color:#78716c; margin-top:3px; }
+  .note { font-size:12px; color:#78716c; margin-top:10px; line-height:1.5; }
+  button.primary { margin-top:12px; width:100%; border:none; border-radius:14px; background:#1c1917;
+    color:#fafaf9; font-size:16px; font-weight:500; padding:15px; display:flex;
+    align-items:center; justify-content:center; gap:8px; cursor:pointer; }
+  button.primary:disabled { opacity:.5; }
+  button.ghost { margin-top:12px; width:100%; border:1px solid #d6d3d1; border-radius:14px;
+    background:#fff; color:#1c1917; font-size:15px; font-weight:500; padding:13px; cursor:pointer; }
+  .btns { display:flex; gap:10px; }
+  .btns .primary,.btns .ghost { flex:1; }
+  input.key { width:100%; margin-top:8px; padding:14px; border:1px solid #d6d3d1; border-radius:12px;
+    font-size:16px; background:#fff; }
+  .err { margin-top:12px; font-size:14px; color:#be123c; background:#fff1f2;
+    border:1px solid #fecdd3; border-radius:10px; padding:10px 12px; word-break:break-word; }
+  .progWrap { margin-top:10px; height:6px; background:#e7e5e4; border-radius:999px; overflow:hidden; }
+  .progBar { height:100%; width:0%; background:#1c1917; transition:width .2s; }
+  .summary { margin-top:18px; display:flex; gap:8px; flex-wrap:wrap; font-size:12px; align-items:center; }
+  .total { font-size:13px; color:#57534e; font-weight:600; margin-right:2px; }
+  .pill { padding:5px 11px; border-radius:999px; border:1px solid; font-weight:500; cursor:pointer; background:#fff; }
+  .pill.off { opacity:.45; }
+  .p-g { background:#ecfdf5; color:#047857; border-color:#a7f3d0; }
+  .p-r { background:#fff1f2; color:#be123c; border-color:#fecdd3; }
+  .p-a { background:#fffbeb; color:#b45309; border-color:#fde68a; }
+  .p-n { background:#f5f5f4; color:#57534e; border-color:#d6d3d1; }
+  .empty { margin-top:14px; text-align:center; color:#a8a29e; font-size:14px; padding:56px 16px;
+    border:1px dashed #d6d3d1; border-radius:14px; line-height:1.6; }
+  .pendBar { margin-top:16px; background:#eff6ff; border:1px solid #bfdbfe; border-radius:12px;
+    padding:12px 14px; font-size:14px; color:#1e3a8a; }
+  .pendBar .btns { margin-top:10px; }
+  .pendBar .primary,.pendBar .ghost { margin-top:0; padding:11px; font-size:14px; }
+  /* Section header */
+  .sec-hdr { margin-top:20px; margin-bottom:2px; display:flex; align-items:center;
+    justify-content:space-between; padding:0 2px 6px; border-bottom:2px solid #e7e5e4; }
+  .sec-name { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.08em; color:#78716c; }
+  .sec-acts { display:flex; gap:2px; }
+  .sec-acts button { background:none; border:none; color:#c4b5b0; font-size:15px;
+    cursor:pointer; padding:2px 5px; border-radius:6px; }
+  .sec-acts button:active { background:#f5f5f4; }
+  /* Cards */
+  .card { margin-top:6px; background:#fff; border:1px solid #e7e5e4; border-radius:14px;
+    overflow:hidden; display:flex; user-select:none; -webkit-user-select:none; }
+  .card.pend { border-style:dashed; border-color:#93c5fd; background:#f8fbff; }
+  .card.dragging { opacity:.35; }
+  .card.drag-over { border-color:#1c1917; border-width:2px; }
+    .drag-handle:active { cursor:grabbing; }
+  .bar { width:5px; flex:none; }
+  .b-g{background:#10b981}.b-r{background:#f43f5e}.b-a{background:#f59e0b}.b-n{background:#d6d3d1}
+  .cbody { flex:1; padding:11px 13px; min-width:0; }
+  .row1 { display:flex; align-items:center; justify-content:space-between; gap:8px; }
+  .code { font-family:ui-monospace,Menlo,monospace; font-size:15px; font-weight:600; letter-spacing:.1em; }
+  .chip { font-size:11px; padding:2px 8px; border-radius:999px; border:1px solid; white-space:nowrap; }
+  .pname { font-size:12px; color:#78716c; margin-top:2px; line-height:1.35;
+    overflow:hidden; text-overflow:ellipsis; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; }
+  .prices { margin-top:8px; display:flex; gap:22px; align-items:baseline; }
+  .lbl { font-size:10px; text-transform:uppercase; letter-spacing:.05em; color:#a8a29e; }
+  .val { font-family:ui-monospace,Menlo,monospace; font-size:14px; margin-top:1px; }
+  .val.diff { color:#e11d48; font-weight:600; }
+  .meta { margin-top:7px; font-size:11px; color:#a8a29e; }
+  .acts { margin-top:9px; display:flex; gap:6px; }
+  .acts button { flex:1; border:1px solid #e7e5e4; background:#fafaf9; border-radius:9px;
+    font-size:12px; padding:7px 4px; cursor:pointer; color:#44403c; }
+  .acts button.x { color:#be123c; }
+  .iconbtn { border:none; background:none; color:#a8a29e; font-size:18px; cursor:pointer; padding:0 4px; }
+  .gear { margin-top:22px; text-align:center; display:flex; gap:18px; justify-content:center; flex-wrap:wrap; }
+  .gear button { background:none; border:none; color:#a8a29e; font-size:13px; cursor:pointer; }
+  .spin { width:18px; height:18px; border:2px solid #fafaf9; border-top-color:transparent;
+    border-radius:50%; animation:spin .7s linear infinite; display:inline-block; }
+  @keyframes spin { to { transform:rotate(360deg); } }
+  .modal { position:fixed; inset:0; background:rgba(0,0,0,.4); display:flex; align-items:flex-end;
+    justify-content:center; z-index:50; }
+  .sheet { background:#fff; width:100%; max-width:480px; border-radius:18px 18px 0 0;
+    padding:20px 18px 34px; max-height:85vh; overflow-y:auto; }
+  .mTitle { font-size:16px; font-weight:600; }
+  .mNote { font-size:13px; color:#78716c; margin:8px 0 2px; line-height:1.5; }
+  .mLbl { font-size:12px; color:#57534e; display:block; margin-top:10px; }
+  .mRow { display:flex; gap:10px; margin-top:8px; }
+  .mRow .ghost,.mRow .primary { flex:1; }
+  .toast { position:fixed; left:50%; bottom:28px; transform:translateX(-50%);
+    background:#1c1917; color:#fafaf9; font-size:13px; padding:10px 16px;
+    border-radius:999px; z-index:60; max-width:90%; pointer-events:none; }
+  .hidden { display:none; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="logo">▣</div>
+    <div>
+      <h1>Shelf Price Tracker</h1>
+      <div class="sub">Track front-of-house prices vs live Screwfix · <b>v25</b></div>
+    </div>
+  </header>
+
+  <div id="setup" class="hidden">
+    <p class="note" style="margin-top:18px;">Paste your Anthropic API key to get started.</p>
+    <input id="keyInput" class="key" type="password" placeholder="sk-ant-..."
+      autocomplete="off" autocapitalize="off" spellcheck="false">
+    <button id="saveKey" class="primary">Save key</button>
+    <p class="note">Get one at console.anthropic.com → API keys.</p>
+  </div>
+
+  <div id="app" class="hidden">
+    <button id="checkBtn" class="primary" data-mode="check">
+      <span id="checkIcon">🔄</span><span id="checkText">Check all prices</span>
+    </button>
+    <div id="progWrap" class="progWrap hidden"><div id="progBar" class="progBar"></div></div>
+    <div class="btns">
+      <button id="staleBtn" class="ghost">Smart check — old, missing &amp; differs</button>
+    </div>
+    <button id="addBtn" class="ghost"><span id="addText">📷  Add products from photo</span></button>
+    <input id="addFile" type="file" accept="image/*" multiple class="hidden">
+
+    <div id="err" class="err hidden"></div>
+    <div id="pend"></div>
+    <div id="summary" class="summary hidden"></div>
+    <div id="list"></div>
+    <div id="empty" class="empty">No products yet.<br>Tap <b>Add products from photo</b> to photograph your shelf tickets.</div>
+
+    <div class="gear">
+      <button id="exportBtn">Export backup</button>
+      <button id="importBtn">Import backup</button>
+      <button id="changeKey">Change API key</button>
+    </div>
+    <input id="importFile" type="file" accept=".json,text/plain,application/json" class="hidden">
+  </div>
+</div>
+
+<div id="modal" class="modal hidden"><div class="sheet">
+  <div id="modalTitle" class="mTitle"></div>
+  <div id="modalBody"></div>
+</div></div>
+<div id="toast" class="toast hidden"></div>
+<datalist id="sectionList"></datalist>
+
+<script>
+// ===================== CONFIG =====================
+const MODEL     = "claude-sonnet-4-6";
+const MAX_DIM   = 1568;
+const KEY_STORE = "apc_anthropic_key";
+const PROD_STORE= "spc_products";
+const SEC_STORE = "spc_sections";
+const WORKER    = "https://screwfix.purviss589.workers.dev/";
+const PRICE_TOL = 0.005;
+const CONCUR    = 4;
+const STALE_DAYS= 7;
+const COST_EACH = 0.01;
+
+const PROMPT =
+  "You are reading retail shelf price tickets from a photo. The photo may contain SEVERAL tickets — read every one you can. " +
+  "For each ticket extract: (1) code: value after 'Code:'. Ignore dimensions, offer text, and any sideways reference numbers. " +
+  "(2) price: the large displayed price as a plain number. " +
+  "(3) name: the product description line (e.g. 'Easyfix Wall Plugs 7mm x 38mm 100 Pack'). " +
+  'Return ONLY a JSON array, no prose, e.g. [{"code":"18493","price":1.06,"name":"Easyfix Wall Plugs 7mm x 38mm 100 Pack"}]. ' +
+  "If a ticket's code or price is too unclear, omit it. If none readable, return [].";
+
+// ===================== STATE =====================
+let products     = loadProducts();
+let sectionOrder = loadSections();
+let pending      = [];
+let checking     = false;
+let filter       = "all";
+
+function loadProducts(){ try{ return JSON.parse(localStorage.getItem(PROD_STORE))||[]; }catch{ return []; } }
+function saveProducts(){ localStorage.setItem(PROD_STORE, JSON.stringify(products)); }
+function loadSections(){ try{ return JSON.parse(localStorage.getItem(SEC_STORE))||[]; }catch{ return []; } }
+function saveSections(){ localStorage.setItem(SEC_STORE, JSON.stringify(sectionOrder)); }
+
+function getSections(){
+  const used = [...new Set(products.map(p=>p.section||""))];
+  for(const s of used) if(!sectionOrder.includes(s)) sectionOrder.push(s);
+  sectionOrder = sectionOrder.filter(s=>products.some(p=>(p.section||"")===s));
+  if(!sectionOrder.length && products.length) sectionOrder=[""];
+  saveSections();
+  return [...sectionOrder];
+}
+
+// ===================== HELPERS =====================
+const $ = id => document.getElementById(id);
+const money = n => n==null?"—":"£"+Number(n).toFixed(2);
+const todayStr = () => new Date().toISOString().slice(0,10);
+const escHtml = s => String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+function fmtDate(iso){
+  if(!iso) return "never";
+  const d=new Date(iso), days=Math.floor((Date.now()-d)/864e5);
+  if(days<=0) return "today"; if(days===1) return "yesterday";
+  if(days<7) return days+"d ago";
+  return d.toLocaleDateString("en-GB",{day:"numeric",month:"short"});
+}
+const isStale = p => !p.lastChecked||(Date.now()-new Date(p.lastChecked).getTime())>STALE_DAYS*864e5;
+function recompute(p){
+  if(!p.lastChecked) return "unchecked";
+  if(p.online==null) return "notfound";
+  return Math.abs(p.shelf-p.online)<PRICE_TOL?"synced":"differs";
+}
+const MAP={
+  synced:   {lbl:"In sync",     bar:"b-g",chip:"p-g"},
+  differs:  {lbl:"Price differs",bar:"b-r",chip:"p-r"},
+  notfound: {lbl:"Not found",   bar:"b-a",chip:"p-a"},
+  error:    {lbl:"Check failed",bar:"b-a",chip:"p-a"},
+  unchecked:{lbl:"Not checked", bar:"b-n",chip:"p-n"},
+};
+let toastT;
+function toast(msg){ const t=$("toast"); t.textContent=msg; t.classList.remove("hidden");
+  clearTimeout(toastT); toastT=setTimeout(()=>t.classList.add("hidden"),2600); }
+function showErr(m){ $("err").textContent=m; $("err").classList.remove("hidden"); }
+function hideErr(){ $("err").classList.add("hidden"); }
+function showModal(){ $("modal").classList.remove("hidden"); }
+function hideModal(){ $("modal").classList.add("hidden"); }
+
+// ===================== API KEY =====================
+function getKey(){ return localStorage.getItem(KEY_STORE)||""; }
+function showApp(){ const has=!!getKey(); $("setup").classList.toggle("hidden",has); $("app").classList.toggle("hidden",!has); }
+$("saveKey").onclick=()=>{ const k=$("keyInput").value.trim(); if(!k) return; localStorage.setItem(KEY_STORE,k); showApp(); };
+$("changeKey").onclick=()=>{ localStorage.removeItem(KEY_STORE); $("keyInput").value=""; showApp(); };
+
+// ===================== VISION =====================
+async function extractTickets(base64,apiKey){
+  const res=await fetch("https://api.anthropic.com/v1/messages",{
+    method:"POST",
+    headers:{"x-api-key":apiKey,"anthropic-version":"2023-06-01","content-type":"application/json",
+      "anthropic-dangerous-direct-browser-access":"true"},
+    body:JSON.stringify({model:MODEL,max_tokens:1500,messages:[{role:"user",content:[
+      {type:"image",source:{type:"base64",media_type:"image/jpeg",data:base64}},
+      {type:"text",text:PROMPT}
+    ]}]})
+  });
+  const data=await res.json();
+  if(data.error) throw new Error(data.error.message||JSON.stringify(data.error));
+  const text=(data.content||[]).filter(b=>b.type==="text").map(b=>b.text).join("").replace(/```json|```/g,"").trim();
+  try{ const p=JSON.parse(text); return Array.isArray(p)?p:[]; }catch{ return []; }
+}
+
+// ===================== PRICE LOOKUP =====================
+async function lookupOnlinePrice(code){
+  const res=await fetch(WORKER+encodeURIComponent(code),{signal:AbortSignal.timeout(25000)});
+  if(!res.ok) throw new Error("Worker error: "+res.status);
+  const data=await res.json();
+  if(data.error) throw new Error(data.error);
+  return data.price==null?null:data.price;
+}
+
+// ===================== IMAGE =====================
+function processImage(file){
+  return new Promise((resolve,reject)=>{
+    const url=URL.createObjectURL(file),img=new Image();
+    img.onload=()=>{ URL.revokeObjectURL(url);
+      let w=img.width,h=img.height;
+      if(Math.max(w,h)>MAX_DIM){ if(w>=h){h=Math.round(h*MAX_DIM/w);w=MAX_DIM;}else{w=Math.round(w*MAX_DIM/h);h=MAX_DIM;} }
+      const c=document.createElement("canvas"); c.width=w; c.height=h;
+      c.getContext("2d").drawImage(img,0,0,w,h);
+      resolve(c.toDataURL("image/jpeg",0.85).split(",")[1]);
+    };
+    img.onerror=()=>{ URL.revokeObjectURL(url); reject(new Error("Couldn't read that image.")); };
+    img.src=url;
+  });
+}
+
+// ===================== ADD PRODUCTS =====================
+$("addBtn").onclick=()=>$("addFile").click();
+$("addFile").onchange=onAddFile;
+function setAddBusy(b){ $("addBtn").disabled=b; $("addText").innerHTML=b?'<span class="spin"></span>  Reading…':"📷  Add products from photo"; }
+
+async function onAddFile(e){
+  const files=[...(e.target.files||[])]; if(!files.length) return;
+  setAddBusy(true); hideErr();
+  try{
+    let readAny=false;
+    for(const f of files){
+      const b64=await processImage(f);
+      const tickets=await extractTickets(b64,getKey());
+      for(const t of tickets){
+        if(!t.code) continue;
+        const code=String(t.code).toUpperCase().trim();
+        const price=typeof t.price==="number"?t.price:parseFloat(t.price);
+        if(isNaN(price)) continue;
+        if(pending.some(p=>p.code===code)) continue;
+        pending.push({code,price,name:t.name?String(t.name).trim():""});
+        readAny=true;
+      }
+    }
+    if(!readAny&&!pending.length) showErr("Couldn't read a ticket — try closer and straight-on, 4–5 tickets per shot.");
+    render();
+  }catch(err){ showErr(err.message||"Something went wrong."); }
+  finally{ setAddBusy(false); $("addFile").value=""; }
+}
+
+function commitPending(){
+  let added=0,updated=0;
+  // Assign to first section or "" if none exist
+  const defaultSec = sectionOrder.length ? sectionOrder[0] : "";
+  for(const p of pending){
+    const ex=products.find(x=>x.code===p.code);
+    if(ex){
+      ex.shelf=p.price; if(p.name) ex.name=p.name; ex.updatedAt=todayStr();
+      (ex.history=ex.history||[]).push({date:todayStr(),shelf:p.price});
+      ex.status=recompute(ex); updated++;
+    } else {
+      products.push({code:p.code,name:p.name||"",shelf:p.price,online:null,
+        lastChecked:null,status:"unchecked",updatedAt:todayStr(),
+        section:defaultSec,history:[{date:todayStr(),shelf:p.price}]});
+      added++;
+    }
+  }
+  pending=[]; saveProducts(); render();
+  toast(`Added ${added}${updated?`, updated ${updated}`:""}`);
+}
+function dropPending(code){ pending=pending.filter(p=>p.code!==code); render(); }
+function clearPending(){ pending=[]; render(); }
+
+// ===================== CHECK PRICES =====================
+$("checkBtn").onclick=()=>{ if($("checkBtn").dataset.mode==="stop"){checking=false;return;} runCheck(false); };
+$("staleBtn").onclick=()=>runCheck("priority");
+
+function setCheckUI(active,done,total){
+  const b=$("checkBtn");
+  if(active){
+    b.dataset.mode="stop";
+    $("checkText").textContent=`Checking ${done||0}/${total} — tap to stop`;
+    $("checkIcon").innerHTML='<span class="spin"></span>';
+    $("addBtn").disabled=true; $("staleBtn").disabled=true;
+    $("progWrap").classList.remove("hidden");
+    $("progBar").style.width=total?Math.round((done/total)*100)+"%":"0%";
+  } else {
+    b.dataset.mode="check";
+    $("checkText").textContent="Check all prices";
+    $("checkIcon").textContent="🔄";
+    $("addBtn").disabled=false; $("staleBtn").disabled=false;
+    $("progWrap").classList.add("hidden");
+  }
+}
+
+async function runCheck(mode){
+  const toCheck = products.filter(p => {
+    if(mode==="priority") return isStale(p)||p.status==="unchecked"||p.status==="notfound"||p.status==="differs";
+    return true;
+  });
+  if(!toCheck.length){ toast(onlyStale?"Nothing old to check.":"No products yet."); return; }
+  const cost=(toCheck.length*COST_EACH).toFixed(2);
+  if(!confirm(`Check ${toCheck.length} product${toCheck.length>1?"s":""}?\nRoughly £${cost} in lookups.`)) return;
+  checking=true; let done=0; setCheckUI(true,0,toCheck.length);
+  const queue=[...toCheck];
+  async function worker(){
+    while(queue.length&&checking){
+      const p=queue.shift();
+      try{
+        const online=await lookupOnlinePrice(p.code);
+        p.online=online; p.lastChecked=new Date().toISOString();
+        p.status=online==null?"notfound":(Math.abs(p.shelf-online)<PRICE_TOL?"synced":"differs");
+      }catch(e){ p.lastChecked=new Date().toISOString(); p.status="error"; p.online=null; }
+      done++; setCheckUI(true,done,toCheck.length);
+      if(done%CONCUR===0){ saveProducts(); render(); }
+    }
+  }
+  await Promise.all(Array.from({length:Math.min(CONCUR,queue.length)},worker));
+  checking=false; saveProducts(); setCheckUI(false); render();
+  const diffs=products.filter(p=>p.status==="differs").length;
+  toast(diffs?`Done — ${diffs} price change${diffs>1?"s":""} found`:"Done — no changes");
+}
+
+function syncPrice(code){
+  const p=products.find(x=>x.code===code); if(!p||p.online==null) return;
+  p.shelf=p.online; p.updatedAt=todayStr();
+  (p.history=p.history||[]).push({date:todayStr(),shelf:p.online});
+  p.status="synced"; saveProducts(); render(); toast("Synced "+code+" to "+money(p.online));
+}
+
+// ===================== SECTION REORDER =====================
+function moveSection(sec, dir){
+  const idx=sectionOrder.indexOf(sec); if(idx<0) return;
+  const newIdx=idx+dir;
+  if(newIdx<0||newIdx>=sectionOrder.length) return;
+  sectionOrder.splice(idx,1); sectionOrder.splice(newIdx,0,sec);
+  saveSections(); render();
+}
+
+// ===================== REORDER =====================
+function moveProduct(code, dir){
+  const idx=products.findIndex(p=>p.code===code); if(idx<0) return;
+  const newIdx=idx+dir;
+  if(newIdx<0||newIdx>=products.length) return;
+  [products[idx],products[newIdx]]=[products[newIdx],products[idx]];
+  saveProducts(); render();
+}
+
+// ===================== EDIT / UPDATE / REMOVE =====================
+function openEdit(code){
+  const p=products.find(x=>x.code===code); if(!p) return;
+  const secs=getSections().filter(s=>s!=="");
+  // Update datalist
+  $("sectionList").innerHTML=secs.map(s=>`<option value="${escHtml(s)}">`).join("");
+  $("modalTitle").textContent="Edit product";
+  $("modalBody").innerHTML=
+    `<label class="mLbl">Code</label>`+
+    `<input id="eCode" class="key" value="${escHtml(p.code)}" autocapitalize="characters" spellcheck="false" style="font-family:ui-monospace,Menlo,monospace">`+
+    `<label class="mLbl">Name</label>`+
+    `<input id="eName" class="key" style="font-family:inherit" value="${escHtml(p.name||"")}">`+
+    `<label class="mLbl">Shelf price</label>`+
+    `<input id="eShelf" class="key" inputmode="decimal" value="${Number(p.shelf).toFixed(2)}">`+
+    `<label class="mLbl">Section</label>`+
+    `<input id="eSection" class="key" style="font-family:inherit" list="sectionList" placeholder="Type or pick a section…" value="${escHtml(p.section||"")}">`+
+    `<div class="mRow"><button class="ghost" id="eCancelBtn">Cancel</button><button class="primary" id="eSaveBtn" style="margin-top:0">Save</button></div>`;
+  showModal();
+  $("eCancelBtn").onclick=hideModal;
+  $("eSaveBtn").onclick=()=>{
+    const newCode=$("eCode").value.trim().toUpperCase();
+    const newName=$("eName").value.trim();
+    const newShelf=parseFloat($("eShelf").value);
+    const newSec=$("eSection").value.trim();
+    if(!newCode){toast("Code can't be empty");return;}
+    if(isNaN(newShelf)){toast("Enter a valid price");return;}
+    if(newCode!==p.code&&products.some(x=>x.code===newCode)){toast("That code already exists");return;}
+    p.code=newCode; p.name=newName; p.shelf=newShelf; p.section=newSec;
+    (p.history=p.history||[]).push({date:todayStr(),shelf:newShelf});
+    p.status=recompute(p);
+    saveProducts(); hideModal(); render(); toast("Saved");
+  };
+}
+
+function openUpdate(code){
+  const p=products.find(x=>x.code===code); if(!p) return;
+  const def=p.online!=null?p.online:p.shelf;
+  $("modalTitle").textContent="Mark updated — "+code;
+  $("modalBody").innerHTML=
+    `<p class="mNote">${p.name?escHtml(p.name)+"<br>":""}Shelf ${money(p.shelf)}${p.online!=null?` · Online ${money(p.online)}`:""}</p>`+
+    `<label class="mLbl">New shelf price on the ticket</label>`+
+    `<input id="uPrice" class="key" inputmode="decimal" value="${def!=null?Number(def).toFixed(2):""}">`+
+    `<div class="mRow"><button class="ghost" id="uCancel">Cancel</button><button class="primary" id="uSave" style="margin-top:0">Save</button></div>`;
+  showModal();
+  $("uCancel").onclick=hideModal;
+  $("uSave").onclick=()=>{
+    const v=parseFloat($("uPrice").value);
+    if(isNaN(v)){toast("Enter a price");return;}
+    p.shelf=v; p.updatedAt=todayStr();
+    (p.history=p.history||[]).push({date:todayStr(),shelf:v});
+    p.status=recompute(p); saveProducts(); hideModal(); render(); toast("Updated "+code);
+  };
+}
+
+function removeProduct(code){
+  if(!confirm("Remove "+code+"?")) return;
+  products=products.filter(p=>p.code!==code); saveProducts(); render();
+}
+
+$("modal").onclick=e=>{ if(e.target.id==="modal") hideModal(); };
+
+// ===================== BACKUP =====================
+$("exportBtn").onclick=()=>{
+  if(!products.length){toast("Nothing to export.");return;}
+  const blob=new Blob([JSON.stringify({products,sectionOrder},null,2)],{type:"application/json"});
+  const url=URL.createObjectURL(blob),a=document.createElement("a");
+  a.href=url; a.download="price-tracker-backup-"+todayStr()+".json"; a.click();
+  setTimeout(()=>URL.revokeObjectURL(url),1000); toast("Backup downloaded");
+};
+$("importBtn").onclick=()=>$("importFile").click();
+$("importFile").onchange=e=>{
+  const f=e.target.files?.[0]; if(!f) return;
+  const r=new FileReader();
+  r.onload=()=>{
+    try{
+      const data=JSON.parse(r.result);
+      const prods=Array.isArray(data)?data:(data.products||[]);
+      const secs=Array.isArray(data)?[]:(data.sectionOrder||[]);
+      if(!Array.isArray(prods)||!prods.length) throw new Error("No products found in file");
+      products=prods; sectionOrder=secs;
+      saveProducts(); saveSections(); render();
+      toast("Imported "+prods.length+" products");
+    }catch(err){ showErr("Import failed: "+(err.message||"invalid file")); }
+  };
+  r.onerror=()=>showErr("Couldn't read the file.");
+  r.readAsText(f); e.target.value="";
+};
+
+// ===================== RENDER =====================
+function matchesFilter(p){
+  if(filter==="all") return true;
+  if(filter==="missing") return p.status==="notfound"||p.status==="error";
+  return p.status===filter;
+}
+
+function render(){
+  // Pending
+  const pe=$("pend");
+  if(pending.length){
+    pe.innerHTML=
+      `<div class="pendBar">Read ${pending.length} ticket${pending.length>1?"s":""} — review then add to list.`+
+      `<div class="btns"><button class="ghost" id="pendCancel">Discard</button><button class="primary" id="pendAdd">Add ${pending.length} to list</button></div></div>`+
+      pending.map(p=>`<div class="card pend"><div class="bar b-n"></div><div class="cbody">
+        <div class="row1"><span class="code">${escHtml(p.code)}</span>
+          <button class="iconbtn" data-act="dropPending" data-code="${escHtml(p.code)}">✕</button></div>
+        ${p.name?`<div class="pname">${escHtml(p.name)}</div>`:""}
+        <div class="prices"><div><div class="lbl">Shelf</div><div class="val">${money(p.price)}</div></div></div>
+      </div></div>`).join("");
+    $("pendAdd").onclick=commitPending; $("pendCancel").onclick=clearPending;
+  } else pe.innerHTML="";
+
+  // Summary pills
+  const c={synced:0,differs:0,notfound:0,error:0,unchecked:0};
+  products.forEach(p=>c[p.status]=(c[p.status]||0)+1);
+  const miss=c.notfound+c.error;
+  const sum=$("summary");
+  if(products.length){
+    sum.classList.remove("hidden");
+    const pill=(key,cls,label,n)=>`<span class="pill ${cls} ${filter!=="all"&&filter!==key?"off":""}" data-filter="${key}">${n} ${label}</span>`;
+    sum.innerHTML=
+      `<span class="total">${products.length} products</span>`+
+      pill("differs","p-r","differ",c.differs)+
+      pill("synced","p-g","in sync",c.synced)+
+      pill("missing","p-a","missing",miss)+
+      pill("unchecked","p-n","new",c.unchecked)+
+      (filter!=="all"?`<span class="pill p-n" data-filter="all">show all</span>`:"");
+  } else sum.classList.add("hidden");
+
+  // Product list grouped by section
+  $("empty").classList.toggle("hidden", products.length>0||pending.length>0);
+  const sections=getSections();
+  let html="";
+
+  for(const sec of sections){
+    const secProds=products.filter(p=>(p.section||"")===(sec||"")&&matchesFilter(p));
+    if(!secProds.length) continue;
+    const secLabel=sec||"Uncategorised";
+    const secIdx=sectionOrder.indexOf(sec);
+    html+=`<div class="sec-hdr" data-section="${escHtml(sec)}">
+      <span class="sec-name">${escHtml(secLabel)}</span>
+      <div class="sec-acts">
+        <button data-act="secUp" data-section="${escHtml(sec)}" title="Move section up">⬆</button>
+        <button data-act="secDown" data-section="${escHtml(sec)}" title="Move section down">⬇</button>
+      </div>
+    </div>`;
+    for(const p of secProds){
+      const m=MAP[p.status]||MAP.unchecked;
+      const diff=p.status==="differs"?" diff":"";
+      const onlineTxt=p.status==="unchecked"?"—":money(p.online);
+      html+=`<div class="card" data-code="${escHtml(p.code)}">
+        <div class="bar ${m.bar}"></div>
+        <div class="cbody">
+          <div class="row1"><span class="code">${escHtml(p.code)}</span><span class="chip ${m.chip}">${m.lbl}</span></div>
+          ${p.name?`<div class="pname">${escHtml(p.name)}</div>`:""}
+          <div class="prices">
+            <div><div class="lbl">Shelf</div><div class="val">${money(p.shelf)}</div></div>
+            <div><div class="lbl">Online</div><div class="val${diff}">${onlineTxt}</div></div>
+          </div>
+          <div class="meta">Updated ${p.updatedAt||"—"} · Checked ${fmtDate(p.lastChecked)}</div>
+          <div class="acts">
+            <button data-act="up"   data-code="${escHtml(p.code)}">⬆</button>
+            <button data-act="down" data-code="${escHtml(p.code)}">⬇</button>
+            <button data-act="edit"   data-code="${escHtml(p.code)}">Edit</button>
+            <button data-act="update" data-code="${escHtml(p.code)}">Mark updated</button>
+            ${p.status==="differs"?`<button data-act="sync" data-code="${escHtml(p.code)}" style="background:#ecfdf5;color:#047857;border-color:#a7f3d0">✓ Sync</button>`:""}
+            <button class="x" data-act="remove" data-code="${escHtml(p.code)}">Remove</button>
+          </div>
+        </div>
+      </div>`;
+    }
+  }
+  if(products.length&&!html) html=`<div class="empty">Nothing in this filter.</div>`;
+  $("list").innerHTML=html;
+}
+
+// ===================== EVENT DELEGATION =====================
+$("list").addEventListener("click",e=>{
+  const b=e.target.closest("[data-act]"); if(!b) return;
+  const {act,code,section}=b.dataset;
+  if(act==="up")       moveProduct(code,-1);
+  else if(act==="down")    moveProduct(code,+1);
+  else if(act==="edit")    openEdit(code);
+  else if(act==="update")  openUpdate(code);
+  else if(act==="sync")    syncPrice(code);
+  else if(act==="remove")  removeProduct(code);
+  else if(act==="secUp")   moveSection(section,-1);
+  else if(act==="secDown") moveSection(section,+1);
+});
+$("pend").addEventListener("click",e=>{
+  const b=e.target.closest("[data-act='dropPending']"); if(b) dropPending(b.dataset.code);
+});
+$("summary").addEventListener("click",e=>{
+  const b=e.target.closest("[data-filter]"); if(!b) return;
+  filter=(filter===b.dataset.filter)?"all":b.dataset.filter; render();
+});
+
+showApp(); render();
+</script>
+</body>
+</html>
